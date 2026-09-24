@@ -1,1 +1,32 @@
+version: '3.8'
 
+services:
+  database:
+    image: postgis/postgis:14-3.3
+    environment:
+      POSTGRES_USER: sentinel_admin
+      POSTGRES_PASSWORD: secure_password_123
+      POSTGRES_DB: cybercrime_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build: ./backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    depends_on:
+      - database
+    environment:
+      - DATABASE_URL=postgresql://sentinel_admin:secure_password_123@database:5432/cybercrime_db
+      - JWT_SECRET=super_secret_key_for_rbac
+
+  frontend:
+    build: ./frontend
+    command: npm run dev -- --host
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
